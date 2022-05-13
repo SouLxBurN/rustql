@@ -1,0 +1,42 @@
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Query {
+    article(id: ID!): Article
+    author(id: ID!): Author
+    tag(id: ID!): Tag
+}
+
+type Article {
+    id: ID!
+    title: String
+    body: String
+    language: Language!
+    authors: [Author!]!
+    tags: [Tag!]!
+}
+
+type Author {
+    id: ID!
+    name: String
+    articles: [Article!]!
+}
+
+type Tag {
+    id: ID!
+    name: String
+    articles: [Article!]!
+}
+
+enum Lauguage {
+    EN
+    ES
+}
+
+type ArticleSegment {
+    id: ID!
+    body: String
+    type: SegmentType!
+}
