@@ -1,7 +1,9 @@
-use juniper::graphql_object;
+use juniper::{graphql_object, FieldResult};
 
-use crate::Language;
-use crate::resolvers::{Author, Tag};
+use crate::Ctx;
+use crate::resolvers::enums::Language;
+use crate::resolvers::author::Author;
+use crate::resolvers::tag::Tag;
 
 pub struct Article {
     pub id: String,
@@ -36,3 +38,20 @@ impl Article {
     }
 }
 
+impl Article {
+    pub async fn get_article(ctx: &Ctx, id: String) -> FieldResult<Article> {
+        let rows = ctx.db.query("SELECT $1::TEXT", &[&"Hello Stream"]).await?;
+        let value: &str = rows[0].get(0);
+
+        println!("{value}");
+
+        Ok(Article{
+            id,
+            title: String::from("My Favorite Child"),
+            body: String::from("This should be a long body, but its not"),
+            language: Language::EN,
+            author_ids: vec![String::from("1234")],
+            tag_ids: vec![String::from("4321")]
+        })
+    }
+}

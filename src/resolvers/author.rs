@@ -1,6 +1,6 @@
 use juniper::graphql_object;
 
-use crate::Article;
+use crate::resolvers::article::Article;
 
 pub struct Author {
     pub id: String,
@@ -15,7 +15,6 @@ impl Author {
     pub fn name(&self) -> &str { return &self.name; }
 
     pub fn articles(&self) -> Vec<Article> {
-        println!("articles resolving!");
         vec![]
     }
 }

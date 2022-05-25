@@ -1,37 +1,50 @@
 extern crate juniper;
 
 mod resolvers;
-use self::resolvers::{Article, Query};
-use self::resolvers::enums::Language;
+use crate::resolvers::query::Query;
 
 use std::env;
+use std::sync::Arc;
 use juniper::*;
+use tokio_postgres::{Error, Client, NoTls};
 use warp::Filter;
 
-// #[derive(GraphQLInputObject)]
-// #[graphql(description="A humanoid creature in the Star Wars universe")]
-// struct NewHumanInput {
-//     name: String,
-//     appears_in: Vec<Episode>,
-//     home_planet: String,
-// }
+use self::resolvers::mutation::Mutation;
 
-pub struct Ctx(Language);
+pub struct Ctx {
+    db: Arc<Client>
+}
+
+impl Ctx {
+    fn new(c: Arc<Client>) -> Self {
+        Self {
+            db: c
+        }
+    }
+}
 impl juniper::Context for Ctx {}
 
-type Schema = juniper::RootNode<'static, Query, EmptyMutation<Ctx>, EmptySubscription<Ctx>>;
+type Schema = juniper::RootNode<'static, Query, Mutation, EmptySubscription<Ctx>>;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Error> {
     env::set_var("RUST_LOG", "warp_server");
-
     let log = warp::log("warp_server");
 
-    let state = warp::any().map(move || Ctx(Language::EN));
+    let (client, connection) = tokio_postgres::connect("host=localhost user=postgres password=example", NoTls).await?;
+
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("connection error: {}", e);
+        }
+    });
+    let rc_client = Arc::new(client);
+
+    let state = warp::any().map(move || {Ctx::new(rc_client.clone())});
     let graphql_filter = juniper_warp::make_graphql_filter(
         Schema::new(
             Query,
-            EmptyMutation::new(),
+            Mutation,
             EmptySubscription::new()),
         state.boxed()
     );
@@ -44,5 +57,6 @@ async fn main() {
             .with(log),
     )
     .run(([127, 0, 0, 1], 8080))
-    .await
+    .await;
+    Ok(())
 }

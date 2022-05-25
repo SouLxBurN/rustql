@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+tokio-postgres = "0.7.6"
 warp = "0.3.2"
 juniper = "0.15.9"
 juniper_warp = "0.7.0"
