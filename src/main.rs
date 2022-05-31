@@ -12,7 +12,7 @@ use warp::Filter;
 use self::resolvers::mutation::Mutation;
 
 pub struct Ctx {
-    db: Arc<Client>
+    pub db: Arc<Client>
 }
 
 impl Ctx {
@@ -26,18 +26,28 @@ impl juniper::Context for Ctx {}
 
 type Schema = juniper::RootNode<'static, Query, Mutation, EmptySubscription<Ctx>>;
 
+mod embedded {
+    use refinery::embed_migrations;
+    embed_migrations!("db/");
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env::set_var("RUST_LOG", "warp_server");
     let log = warp::log("warp_server");
 
-    let (client, connection) = tokio_postgres::connect("host=localhost user=postgres password=example", NoTls).await?;
-
+    let (mut client, connection) = tokio_postgres::connect("dbname=rustql host=localhost user=postgres password=example", NoTls).await?;
     tokio::spawn(async move {
         if let Err(e) = connection.await {
             eprintln!("connection error: {}", e);
         }
     });
+
+    match embedded::migrations::runner().run_async(&mut client).await {
+        Ok(report) => println!("{:?}", report),
+        Err(e) => panic!("Migrations Failed: {e}")
+    }
+
     let rc_client = Arc::new(client);
 
     let state = warp::any().map(move || {Ctx::new(rc_client.clone())});
