@@ -12,3 +12,6 @@ warp = "0.3.2"
 juniper = "0.15.9"
 juniper_warp = "0.7.0"
 refinery = { version = "0.8", features = ["tokio-postgres"]}
+strum = "0.13.0"
+strum_macros = "0.13.0"
+

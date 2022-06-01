@@ -1,21 +1,27 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::Ctx;
+use crate::resolvers::article::Article;
+use crate::resolvers::article::ArticleInput;
+use crate::resolvers::author::Author;
+use crate::resolvers::author::AuthorInput;
 use crate::resolvers::tag::Tag;
 use crate::resolvers::tag::TagInput;
 
 pub struct Mutation;
 #[graphql_object(Context = Ctx)]
 impl Mutation {
+    /// Create a new article
+    pub async fn createArticle(ctx: &Ctx, input: ArticleInput) -> FieldResult<Article> {
+        Article::create_article(ctx, input).await
+    }
+    /// Create a new author
+    pub async fn createAuthor(ctx: &Ctx, input: AuthorInput) -> FieldResult<Author> {
+        Author::create_author(ctx, input).await
+    }
+    /// Create a new tag
     pub async fn createTag(ctx: &Ctx, input: TagInput) -> FieldResult<Tag> {
-        let stmt = ctx.db.prepare("INSERT INTO tag(name) VALUES ($1) RETURNING id").await?;
-        let row = ctx.db.query_one(&stmt, &[&input.name]).await?;
-
-        Ok(Tag{
-            id: row.get::<&str,i32>("id").to_string(),
-            name: input.name,
-            article_ids: vec![]
-        })
+        Tag::create_tag(ctx, input).await
     }
 }
 

@@ -1,4 +1,7 @@
 extern crate juniper;
+extern crate strum;
+#[macro_use]
+extern crate strum_macros;
 
 mod resolvers;
 use crate::resolvers::query::Query;

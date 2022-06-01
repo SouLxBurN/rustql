@@ -1,5 +1,6 @@
-use juniper::{graphql_object, FieldResult};
+use juniper::{graphql_object, FieldResult, GraphQLInputObject};
 
+use std::str::FromStr;
 use crate::Ctx;
 use crate::resolvers::enums::Language;
 use crate::resolvers::author::Author;
@@ -10,11 +11,20 @@ pub struct Article {
     pub title: String,
     pub body: String,
     pub language: Language,
-    pub author_ids: Vec<String>,
-    pub tag_ids: Vec<String>
+    pub author_id: String,
 }
 
-#[graphql_object]
+#[derive(GraphQLInputObject)]
+#[graphql(description="Article input parameters")]
+pub struct ArticleInput {
+    pub title: String,
+    pub body: String,
+    pub language: Language,
+    pub author_id: String,
+    pub tag_ids: Vec<String>,
+}
+
+#[graphql_object(Context = Ctx)]
 #[graphql(description="Its an Article")]
 impl Article {
     pub fn id(&self) -> &str { return &self.id; }
@@ -22,36 +32,67 @@ impl Article {
     pub fn body(&self) -> &str { return &self.body; }
     pub fn language(&self) -> &Language { return &self.language; }
 
-    pub fn authors(&self) -> Vec<Author> {
-        vec![Author{
-                id: String::from("4321"),
-                name:String::from("SouLxBurN"),
-                articles_ids: vec![]
-            }]
+    pub async fn author(&self, ctx: &Ctx) -> FieldResult<Author> {
+        Author::get_author(ctx, &self.author_id).await
     }
-    pub fn tags(&self) -> Vec<Tag> {
-        vec![Tag{
-                id: String::from("3214"),
-                name: String::from("children"),
-                article_ids: vec![]
-            }]
+
+    pub async fn tags(&self, ctx: &Ctx) -> FieldResult<Vec<Tag>> {
+        Tag::get_article_tags(ctx, &self.id).await
     }
 }
 
 impl Article {
-    pub async fn get_article(ctx: &Ctx, id: String) -> FieldResult<Article> {
-        let rows = ctx.db.query("SELECT $1::TEXT", &[&"Hello Stream"]).await?;
-        let value: &str = rows[0].get(0);
+    pub async fn get_all_articles(ctx: &Ctx) -> FieldResult<Vec<Article>> {
+        let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article").await?;
+        let rows = ctx.db.query(&stmt, &[]).await?;
 
-        println!("{value}");
+        Ok(rows.iter().map(|r| {
+            Article{
+                id: r.get::<&str, i32>("id").to_string(),
+                title: r.get("title"),
+                body: r.get("body"),
+                language: Language::from_str(r.get("language")).unwrap(),
+                author_id: r.get::<&str, i32>("author_id").to_string(),
+            }
+        }).collect())
+    }
+
+    pub async fn get_article(ctx: &Ctx, id: &str) -> FieldResult<Article> {
+        let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article WHERE id=$1").await?;
+        let id_i32 = id.parse::<i32>()?;
+        let row = ctx.db.query_one(&stmt, &[&id_i32]).await?;
 
         Ok(Article{
-            id,
-            title: String::from("My Favorite Child"),
-            body: String::from("This should be a long body, but its not"),
-            language: Language::EN,
-            author_ids: vec![String::from("1234")],
-            tag_ids: vec![String::from("4321")]
+            id: row.get::<&str,i32>("id").to_string(),
+            title: row.get("title"),
+            body: row.get("body"),
+            language: Language::from_str(row.get("language")).unwrap(),
+            author_id: row.get::<&str,i32>("author_id").to_string(),
+        })
+    }
+
+    pub async fn create_article(ctx: &Ctx, input: ArticleInput) -> FieldResult<Article> {
+        // TODO Transactify this please
+        let author_id_i32 = input.author_id.parse::<i32>()?;
+        let article_stmt = ctx.db.prepare("INSERT INTO article(title, body, language, author_id) VALUES ($1, $2, $3, $4) RETURNING *").await?;
+        let article_row = ctx.db.query_one(&article_stmt, &[&input.title, &input.body, &input.language.to_string(), &author_id_i32]).await?;
+
+        if let Ok(article_id) = article_row.try_get::<&str, i32>("id") {
+            for t_id in input.tag_ids {
+                let t_id_i32 = t_id.parse::<i32>()?;
+                let tag_stmt = ctx.db.prepare("INSERT INTO article_tag(article_id, tag_id) VALUES ($1, $2)").await?;
+                let _result = ctx.db.execute(&tag_stmt, &[&article_id, &t_id_i32]).await?;
+            }
+        };
+
+        Ok(Article{
+            id: article_row.get::<&str,i32>("id").to_string(),
+            title: article_row.get("title"),
+            body: article_row.get("body"),
+            language: Language::from_str(article_row.get("language")).unwrap(),
+            author_id: article_row.get::<&str,i32>("author_id").to_string(),
         })
     }
 }
+
+
