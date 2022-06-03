@@ -1,10 +1,7 @@
-use std::str::FromStr;
-
 use juniper::FieldResult;
 
 use crate::Ctx;
 use crate::resolvers::article::{Article, ArticleInput};
-use crate::resolvers::enums::Language;
 
 impl Article {
     pub async fn get_all_articles(ctx: &Ctx) -> FieldResult<Vec<Article>> {
@@ -17,7 +14,7 @@ impl Article {
                 id: r.get::<&str, i32>("id").to_string(),
                 title: r.get("title"),
                 body: r.get("body"),
-                language: Language::from_str(r.get("language")).unwrap(),
+                language: r.get::<&str, String>("language").into(),
                 author_id: r.get::<&str, i32>("author_id").to_string(),
             }
         }).collect())
@@ -34,7 +31,7 @@ impl Article {
                 id: r.get::<&str, i32>("id").to_string(),
                 title: r.get("title"),
                 body: r.get("body"),
-                language: Language::from_str(r.get("language")).unwrap(),
+                language: r.get::<&str, String>("language").into(),
                 author_id: r.get::<&str, i32>("author_id").to_string(),
             }
         }).collect())
@@ -51,7 +48,7 @@ impl Article {
                 id: r.get::<&str, i32>("id").to_string(),
                 title: r.get("title"),
                 body: r.get("body"),
-                language: Language::from_str(r.get("language")).unwrap(),
+                language: r.get::<&str, String>("language").into(),
                 author_id: r.get::<&str, i32>("author_id").to_string(),
             }
         }).collect())
@@ -67,7 +64,7 @@ impl Article {
             id: row.get::<&str,i32>("id").to_string(),
             title: row.get("title"),
             body: row.get("body"),
-            language: Language::from_str(row.get("language")).unwrap(),
+            language: row.get::<&str, String>("language").into(),
             author_id: row.get::<&str,i32>("author_id").to_string(),
         })
     }
@@ -91,7 +88,7 @@ impl Article {
             id: article_row.get::<&str,i32>("id").to_string(),
             title: article_row.get("title"),
             body: article_row.get("body"),
-            language: Language::from_str(article_row.get("language")).unwrap(),
+            language: article_row.get::<&str, String>("language").into(),
             author_id: article_row.get::<&str,i32>("author_id").to_string(),
         })
     }

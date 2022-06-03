@@ -1,7 +1,4 @@
 extern crate juniper;
-extern crate strum;
-#[macro_use]
-extern crate strum_macros;
 
 mod resolvers;
 mod dal;
