@@ -5,7 +5,7 @@ use crate::resolvers::author::{Author, AuthorInput};
 
 impl Author {
     pub async fn get_author(ctx: &Ctx, id: &str) -> FieldResult<Author> {
-        let db = ctx.db_pool.get().await.unwrap();
+        let db = ctx.db_pool.get().await?;
 
         let stmt = db.prepare("SELECT id, name FROM author WHERE id=$1").await?;
         let id_i32 = id.parse::<i32>()?;
@@ -18,7 +18,7 @@ impl Author {
     }
 
     pub async fn get_all_authors(ctx: &Ctx) -> FieldResult<Vec<Author>> {
-        let db = ctx.db_pool.get().await.unwrap();
+        let db = ctx.db_pool.get().await?;
 
         let stmt = db.prepare("SELECT id, name FROM author").await?;
         let rows = db.query(&stmt, &[]).await?;
@@ -33,7 +33,7 @@ impl Author {
     }
 
     pub async fn create_author(ctx: &Ctx, input: AuthorInput) -> FieldResult<Author> {
-        let db = ctx.db_pool.get().await.unwrap();
+        let db = ctx.db_pool.get().await?;
 
         let stmt = db.prepare("INSERT INTO author(name) VALUES ($1) RETURNING id").await?;
         let row = db.query_one(&stmt, &[&input.name]).await?;
