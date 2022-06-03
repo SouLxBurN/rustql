@@ -16,3 +16,10 @@ GraphQL server exploration using [Juniper](https://github.com/graphql-rust/junip
 2. Run `cargo run` to startup of the server.
 3. Navigate to `localhost:8080` to for graphiql.
 4. Profit!
+
+## TODO
+
+- Add Dataloader
+- SQL Mapping crate or ORM
+- Interface w/ Redis
+- Connection Pooling

@@ -22,8 +22,8 @@ impl Author {
     pub fn id(&self) -> &str { return &self.id; }
     pub fn name(&self) -> &str { return &self.name; }
 
-    pub fn articles(&self, ctx: &Ctx) -> Vec<Article> {
-        vec![]
+    pub async fn articles(&self, ctx: &Ctx) -> FieldResult<Vec<Article>> {
+        Article::get_author_articles(ctx, &self.id).await
     }
 }
 

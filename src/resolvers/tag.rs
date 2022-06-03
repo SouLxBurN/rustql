@@ -18,10 +18,10 @@ pub struct TagInput {
 #[graphql_object(Context = Ctx)]
 #[graphql(description="Article classification")]
 impl Tag {
-    fn id(&self) -> &str { return &self.id; }
-    fn name(&self) -> &str { return &self.name; }
-    fn articles(&self, ctx: &Ctx) -> Vec<Article> {
-        vec![]
+    pub fn id(&self) -> &str { return &self.id; }
+    pub fn name(&self) -> &str { return &self.name; }
+    pub async fn articles(&self, ctx: &Ctx) -> FieldResult<Vec<Article>> {
+        Article::get_tag_articles(ctx, &self.id).await
     }
 }
 

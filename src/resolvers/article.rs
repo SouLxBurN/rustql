@@ -57,6 +57,38 @@ impl Article {
         }).collect())
     }
 
+    pub async fn get_tag_articles(ctx: &Ctx, tag_id: &str) -> FieldResult<Vec<Article>> {
+        let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article a, article_tag at WHERE a.id = at.article_id AND at.tag_id = $1").await?;
+        let tag_id_i32 = tag_id.parse::<i32>()?;
+        let rows = ctx.db.query(&stmt, &[&tag_id_i32]).await?;
+
+        Ok(rows.iter().map(|r| {
+            Article{
+                id: r.get::<&str, i32>("id").to_string(),
+                title: r.get("title"),
+                body: r.get("body"),
+                language: Language::from_str(r.get("language")).unwrap(),
+                author_id: r.get::<&str, i32>("author_id").to_string(),
+            }
+        }).collect())
+    }
+
+    pub async fn get_author_articles(ctx: &Ctx, author_id: &str) -> FieldResult<Vec<Article>> {
+        let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article WHERE author_id = $1").await?;
+        let author_id_i32 = author_id.parse::<i32>()?;
+        let rows = ctx.db.query(&stmt, &[&author_id_i32]).await?;
+
+        Ok(rows.iter().map(|r| {
+            Article{
+                id: r.get::<&str, i32>("id").to_string(),
+                title: r.get("title"),
+                body: r.get("body"),
+                language: Language::from_str(r.get("language")).unwrap(),
+                author_id: r.get::<&str, i32>("author_id").to_string(),
+            }
+        }).collect())
+    }
+
     pub async fn get_article(ctx: &Ctx, id: &str) -> FieldResult<Article> {
         let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article WHERE id=$1").await?;
         let id_i32 = id.parse::<i32>()?;
@@ -94,5 +126,3 @@ impl Article {
         })
     }
 }
-
-

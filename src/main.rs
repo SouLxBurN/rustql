@@ -6,23 +6,21 @@ extern crate strum_macros;
 mod resolvers;
 use crate::resolvers::query::Query;
 
+use juniper::*;
 use std::env;
 use std::sync::Arc;
-use juniper::*;
-use tokio_postgres::{Error, Client, NoTls};
+use tokio_postgres::{Client, Error, NoTls};
 use warp::Filter;
 
 use self::resolvers::mutation::Mutation;
 
 pub struct Ctx {
-    pub db: Arc<Client>
+    pub db: Arc<Client>,
 }
 
 impl Ctx {
     fn new(c: Arc<Client>) -> Self {
-        Self {
-            db: c
-        }
+        Self { db: c }
     }
 }
 impl juniper::Context for Ctx {}
@@ -39,7 +37,11 @@ async fn main() -> Result<(), Error> {
     env::set_var("RUST_LOG", "warp_server");
     let log = warp::log("warp_server");
 
-    let (mut client, connection) = tokio_postgres::connect("dbname=rustql host=localhost user=postgres password=example", NoTls).await?;
+    let (mut client, connection) = tokio_postgres::connect(
+        "dbname=rustql host=localhost user=postgres password=example",
+        NoTls,
+    )
+    .await?;
     tokio::spawn(async move {
         if let Err(e) = connection.await {
             eprintln!("connection error: {}", e);
@@ -48,19 +50,14 @@ async fn main() -> Result<(), Error> {
 
     match embedded::migrations::runner().run_async(&mut client).await {
         Ok(report) => println!("{:?}", report),
-        Err(e) => panic!("Migrations Failed: {e}")
+        Err(e) => panic!("Migrations Failed: {e}"),
     }
 
     let rc_client = Arc::new(client);
+    let state = warp::any().map(move || Ctx::new(rc_client.clone()));
 
-    let state = warp::any().map(move || {Ctx::new(rc_client.clone())});
-    let graphql_filter = juniper_warp::make_graphql_filter(
-        Schema::new(
-            Query,
-            Mutation,
-            EmptySubscription::new()),
-        state.boxed()
-    );
+    let schema = Schema::new(Query, Mutation, EmptySubscription::new());
+    let graphql_filter = juniper_warp::make_graphql_filter(schema, state.boxed());
 
     warp::serve(
         warp::get()
