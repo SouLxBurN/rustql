@@ -1,43 +1,74 @@
 schema {
-    query: Query
-    mutation: Mutation
+  query: Query
+  mutation: Mutation
 }
 
 type Query {
-    article(id: ID!): Article
-    author(id: ID!): Author
-    tag(id: ID!): Tag
-    tags: [Tag!]!
+  "Retrieve a single article by ID"
+  article(id: String!): Article
+  "Retrieves a all articles"
+  articles: [Article!]!
+  "Retrieve a single tag by ID"
+  tag(id: String!): Tag
+  "Retrieve ALL tags in the database"
+  tags: [Tag!]!
+  "Retrieve a single author by ID"
+  author(id: String!): Author
+  "Retrieve ALL tags in the database"
+  authors: [Author!]!
 }
 
-type Article {
-    id: ID!
-    title: String
-    body: String
-    language: Language!
-    authors: [Author!]!
-    tags: [Tag!]!
-}
-
-type Author {
-    id: ID!
-    name: String
-    articles: [Article!]!
+type Mutation {
+  "Create a new article"
+  createArticle(input: ArticleInput!): Article!
+  "Create a new author"
+  createAuthor(input: AuthorInput!): Author!
+  "Create a new tag"
+  createTag(input: TagInput!): Tag!
 }
 
 type Tag {
-    id: ID!
-    name: String
-    articles: [Article!]!
+  id: String!
+  name: String!
+  articles: [Article!]!
 }
 
-enum Lauguage {
-    EN
-    ES
+"Tag input parameters"
+input TagInput {
+  name: String!
 }
 
-type ArticleSegment {
-    id: ID!
-    body: String
-    type: SegmentType!
+type Author {
+  id: String!
+  name: String!
+  articles: [Article!]!
+}
+
+enum Language {
+  EN
+  ES
+  UNKNOWN
+}
+
+"Author input parameters"
+input AuthorInput {
+  name: String!
+}
+
+type Article {
+  id: String!
+  title: String!
+  body: String!
+  language: Language!
+  author: Author!
+  tags: [Tag!]!
+}
+
+"Article input parameters"
+input ArticleInput {
+  title: String!
+  body: String!
+  language: Language!
+  authorId: String!
+  tagIds: [String!]!
 }

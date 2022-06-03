@@ -58,6 +58,7 @@ async fn main() -> Result<(), Error> {
     let state = warp::any().map(move || Ctx::new(rc_client.clone()));
 
     let schema = Schema::new(Query, Mutation, EmptySubscription::new());
+    println!("{}", schema.as_schema_language());
     let graphql_filter = juniper_warp::make_graphql_filter(schema, state.boxed());
 
     warp::serve(
