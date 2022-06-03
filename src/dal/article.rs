@@ -8,8 +8,9 @@ use crate::resolvers::enums::Language;
 
 impl Article {
     pub async fn get_all_articles(ctx: &Ctx) -> FieldResult<Vec<Article>> {
-        let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article").await?;
-        let rows = ctx.db.query(&stmt, &[]).await?;
+        let db = ctx.db_pool.get().await.unwrap();
+        let stmt = db.prepare("SELECT id, title, body, language, author_id FROM article").await?;
+        let rows = db.query(&stmt, &[]).await?;
 
         Ok(rows.iter().map(|r| {
             Article{
@@ -23,9 +24,10 @@ impl Article {
     }
 
     pub async fn get_tag_articles(ctx: &Ctx, tag_id: &str) -> FieldResult<Vec<Article>> {
-        let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article a, article_tag at WHERE a.id = at.article_id AND at.tag_id = $1").await?;
+        let db = ctx.db_pool.get().await.unwrap();
+        let stmt = db.prepare("SELECT id, title, body, language, author_id FROM article a, article_tag at WHERE a.id = at.article_id AND at.tag_id = $1").await?;
         let tag_id_i32 = tag_id.parse::<i32>()?;
-        let rows = ctx.db.query(&stmt, &[&tag_id_i32]).await?;
+        let rows = db.query(&stmt, &[&tag_id_i32]).await?;
 
         Ok(rows.iter().map(|r| {
             Article{
@@ -39,9 +41,10 @@ impl Article {
     }
 
     pub async fn get_author_articles(ctx: &Ctx, author_id: &str) -> FieldResult<Vec<Article>> {
-        let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article WHERE author_id = $1").await?;
+        let db = ctx.db_pool.get().await.unwrap();
+        let stmt = db.prepare("SELECT id, title, body, language, author_id FROM article WHERE author_id = $1").await?;
         let author_id_i32 = author_id.parse::<i32>()?;
-        let rows = ctx.db.query(&stmt, &[&author_id_i32]).await?;
+        let rows = db.query(&stmt, &[&author_id_i32]).await?;
 
         Ok(rows.iter().map(|r| {
             Article{
@@ -55,9 +58,10 @@ impl Article {
     }
 
     pub async fn get_article(ctx: &Ctx, id: &str) -> FieldResult<Article> {
-        let stmt = ctx.db.prepare("SELECT id, title, body, language, author_id FROM article WHERE id=$1").await?;
+        let db = ctx.db_pool.get().await.unwrap();
+        let stmt = db.prepare("SELECT id, title, body, language, author_id FROM article WHERE id=$1").await?;
         let id_i32 = id.parse::<i32>()?;
-        let row = ctx.db.query_one(&stmt, &[&id_i32]).await?;
+        let row = db.query_one(&stmt, &[&id_i32]).await?;
 
         Ok(Article{
             id: row.get::<&str,i32>("id").to_string(),
@@ -70,15 +74,16 @@ impl Article {
 
     pub async fn create_article(ctx: &Ctx, input: ArticleInput) -> FieldResult<Article> {
         // TODO Transactify this please
+        let db = ctx.db_pool.get().await.unwrap();
         let author_id_i32 = input.author_id.parse::<i32>()?;
-        let article_stmt = ctx.db.prepare("INSERT INTO article(title, body, language, author_id) VALUES ($1, $2, $3, $4) RETURNING *").await?;
-        let article_row = ctx.db.query_one(&article_stmt, &[&input.title, &input.body, &input.language.to_string(), &author_id_i32]).await?;
+        let article_stmt = db.prepare("INSERT INTO article(title, body, language, author_id) VALUES ($1, $2, $3, $4) RETURNING *").await?;
+        let article_row = db.query_one(&article_stmt, &[&input.title, &input.body, &input.language.to_string(), &author_id_i32]).await?;
 
         if let Ok(article_id) = article_row.try_get::<&str, i32>("id") {
             for t_id in input.tag_ids {
                 let t_id_i32 = t_id.parse::<i32>()?;
-                let tag_stmt = ctx.db.prepare("INSERT INTO article_tag(article_id, tag_id) VALUES ($1, $2)").await?;
-                let _result = ctx.db.execute(&tag_stmt, &[&article_id, &t_id_i32]).await?;
+                let tag_stmt = db.prepare("INSERT INTO article_tag(article_id, tag_id) VALUES ($1, $2)").await?;
+                let _result = db.execute(&tag_stmt, &[&article_id, &t_id_i32]).await?;
             }
         };
 

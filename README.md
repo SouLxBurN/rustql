@@ -7,7 +7,8 @@ GraphQL server exploration using [Juniper](https://github.com/graphql-rust/junip
 - [juniper](https://github.com/graphql-rust/juniper) GraphQL library
 - [warp](https://github.com/seanmonstar/warp) Web server framework
 - [tokio](https://github.com/tokio-rs/tokio) async/await runtime
-- [tokio-postgres](https://github.com/sfackler/rust-postgres) async postgres database driver.
+- [tokio-postgres](https://github.com/sfackler/rust-postgres) async postgres database driver
+- [deadpool](https://github.com/bikeshedder/deadpool) Connection pool for postgreR
 - [refinery](https://github.com/rust-db/refinery) Database migrations
 
 ## Running Locally
@@ -19,7 +20,7 @@ GraphQL server exploration using [Juniper](https://github.com/graphql-rust/junip
 
 ## TODO
 
-- Add Dataloader
-- SQL Mapping crate or ORM
-- Interface w/ Redis
-- Connection Pooling
+- [x] Connection Pooling
+- [ ] Add Dataloader
+- [ ] SQL Mapping crate or ORM
+- [ ] Interface w/ Redis
