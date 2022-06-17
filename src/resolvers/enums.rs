@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use juniper::GraphQLEnum;
 
-#[derive(GraphQLEnum)]
+#[derive(GraphQLEnum, Clone)]
 pub enum Language {
     EN,
     ES,
@@ -22,8 +22,8 @@ impl Display for Language {
 impl From<String> for Language {
     fn from(s: String) -> Self {
         match s.as_ref() {
-            "EN" => Language::EN,
-            "ES" => Language::ES,
+            "EN" | "en" => Language::EN,
+            "ES" | "es" => Language::ES,
             _ => Language::UNKNOWN
         }
     }

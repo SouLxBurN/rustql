@@ -1,6 +1,7 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::Ctx;
+use crate::dal::article::ArticleDAL;
 use crate::resolvers::article::Article;
 use crate::resolvers::article::ArticleInput;
 use crate::resolvers::author::Author;
@@ -13,7 +14,7 @@ pub struct Mutation;
 impl Mutation {
     /// Create a new article
     pub async fn createArticle(ctx: &Ctx, input: ArticleInput) -> FieldResult<Article> {
-        Article::create_article(ctx, input).await
+        ArticleDAL::create_article(ctx, input).await
     }
     /// Create a new author
     pub async fn createAuthor(ctx: &Ctx, input: AuthorInput) -> FieldResult<Author> {

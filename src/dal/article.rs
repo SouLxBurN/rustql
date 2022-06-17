@@ -1,9 +1,67 @@
+use std::collections::HashMap;
+
+use async_trait::async_trait;
+use dataloader::BatchFn;
+use deadpool_postgres::Pool;
 use juniper::FieldResult;
 
 use crate::Ctx;
 use crate::resolvers::article::{Article, ArticleInput};
 
-impl Article {
+pub struct ArticleLoader {
+    dal: ArticleDAL
+}
+
+impl ArticleLoader {
+    pub fn new(dal: ArticleDAL) -> Self { Self { dal } }
+}
+
+#[async_trait]
+impl BatchFn<i32, Article> for ArticleLoader {
+    async fn load(&mut self, keys: &[i32]) -> HashMap<i32, Article> {
+        if let Ok(article_map) = self.dal.get_batch_articles(keys).await {
+            return article_map;
+        }
+        println!("Failed to get articles");
+        HashMap::new()
+    }
+}
+
+#[derive(Clone)]
+pub struct ArticleDAL {
+    db_pool: Pool
+}
+
+impl ArticleDAL {
+    pub fn new(db_pool: Pool) -> Self {
+        Self{ db_pool }
+    }
+
+    pub async fn get_batch_articles(&self, keys: &[i32]) -> FieldResult<HashMap<i32, Article>> {
+        let db = self.db_pool.get().await?;
+
+        let mut params = keys[0].to_string();
+        for idx in 1..keys.len() {
+            params += &format!(",{}", keys[idx]).to_owned();
+        }
+
+        let stmt = db.prepare(
+            format!("SELECT id, title, body, language, author_id FROM article WHERE id IN ({})", params)
+        .as_str()).await?;
+        let rows = db.query(&stmt, &[]).await?;
+
+        Ok(rows.iter().map(|r| {
+            let id = r.get::<&str, i32>("id");
+            (id, Article{
+                id: id.to_string(),
+                title: r.get("title"),
+                body: r.get("body"),
+                language: r.get::<&str, String>("language").into(),
+                author_id: r.get::<&str, i32>("author_id").to_string(),
+            })
+        }).collect())
+    }
+
     pub async fn get_all_articles(ctx: &Ctx) -> FieldResult<Vec<Article>> {
         let db = ctx.db_pool.get().await?;
         let stmt = db.prepare("SELECT id, title, body, language, author_id FROM article").await?;
@@ -55,18 +113,8 @@ impl Article {
     }
 
     pub async fn get_article(ctx: &Ctx, id: &str) -> FieldResult<Article> {
-        let db = ctx.db_pool.get().await?;
-        let stmt = db.prepare("SELECT id, title, body, language, author_id FROM article WHERE id=$1").await?;
         let id_i32 = id.parse::<i32>()?;
-        let row = db.query_one(&stmt, &[&id_i32]).await?;
-
-        Ok(Article{
-            id: row.get::<&str,i32>("id").to_string(),
-            title: row.get("title"),
-            body: row.get("body"),
-            language: row.get::<&str, String>("language").into(),
-            author_id: row.get::<&str,i32>("author_id").to_string(),
-        })
+        Ok(ctx.article_loader.load(id_i32).await)
     }
 
     pub async fn create_article(ctx: &Ctx, input: ArticleInput) -> FieldResult<Article> {

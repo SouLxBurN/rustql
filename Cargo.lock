@@ -161,6 +161,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "dataloader"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9aa4240e00a8a3341eaffbb37780ac1450040c8dc72c78b7616ec5f12c91faf7"
+dependencies = [
+ "async-trait",
+ "tokio",
+]
+
+[[package]]
 name = "deadpool"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1100,7 +1110,10 @@ checksum = "4389f1d5789befaf6029ebd9f7dac4af7f7e3d61b69d4f30e2ac02b57e7712b0"
 name = "rustql"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "dataloader",
  "deadpool-postgres",
+ "futures",
  "juniper",
  "juniper_warp",
  "refinery",

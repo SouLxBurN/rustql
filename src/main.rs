@@ -4,6 +4,7 @@ mod resolvers;
 mod dal;
 use crate::resolvers::query::Query;
 
+use dataloader::non_cached::Loader;
 use deadpool_postgres::{Config, ManagerConfig, RecyclingMethod, Runtime, Pool};
 use juniper::*;
 use std::env;
@@ -11,20 +12,26 @@ use std::ops::DerefMut;
 use tokio_postgres::{Error, NoTls};
 use warp::Filter;
 
+use self::dal::article::{ArticleLoader, ArticleDAL};
+use self::resolvers::article::Article;
 use self::resolvers::mutation::Mutation;
 
 pub struct Ctx {
     pub db_pool: Pool,
+    pub article_loader: Loader<i32, Article, ArticleLoader>
 }
 
 impl Ctx {
-    fn new(p: Pool)-> Self {
-        Self { db_pool: p }
+    fn new(p: Pool, al: Loader<i32, Article, ArticleLoader>)-> Self {
+        Self {
+            db_pool: p,
+            article_loader: al,
+        }
     }
 }
 impl juniper::Context for Ctx {}
 
-type Schema = juniper::RootNode<'static, Query, Mutation, EmptySubscription<Ctx>>;
+type Schema<'a> = juniper::RootNode<'static, Query, Mutation, EmptySubscription<Ctx>>;
 
 mod embedded {
     use refinery::embed_migrations;
@@ -52,7 +59,11 @@ async fn main() -> Result<(), Error> {
         }
     }
 
-    let state = warp::any().map(move || Ctx::new(pool.clone()));
+    let art_dal = ArticleDAL::new(pool.clone());
+    let state = warp::any().map(move || Ctx::new(
+        pool.clone(),
+        Loader::new(ArticleLoader::new(art_dal.clone())).with_max_batch_size(5)
+    ));
 
     let schema = Schema::new(Query, Mutation, EmptySubscription::new());
     let graphql_filter = juniper_warp::make_graphql_filter(schema, state.boxed());

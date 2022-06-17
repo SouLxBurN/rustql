@@ -5,6 +5,7 @@ use crate::resolvers::enums::Language;
 use crate::resolvers::author::Author;
 use crate::resolvers::tag::Tag;
 
+#[derive(Clone)]
 pub struct Article {
     pub id: String,
     pub title: String,

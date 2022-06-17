@@ -1,6 +1,7 @@
 use juniper::{graphql_object, GraphQLInputObject, FieldResult};
 
 use crate::Ctx;
+use crate::dal::article::ArticleDAL;
 use crate::resolvers::article::Article;
 
 pub struct Tag {
@@ -21,7 +22,7 @@ impl Tag {
     pub fn id(&self) -> &str { return &self.id; }
     pub fn name(&self) -> &str { return &self.name; }
     pub async fn articles(&self, ctx: &Ctx) -> FieldResult<Vec<Article>> {
-        Article::get_tag_articles(ctx, &self.id).await
+        ArticleDAL::get_tag_articles(ctx, &self.id).await
     }
 }
 
